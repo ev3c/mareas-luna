@@ -147,9 +147,18 @@
                 <button id="rotateBtn" onclick="toggleRotation()">▶️ Rotar Tierra</button>
                 <button id="moonBtn" onclick="toggleOrbit()">🌙 Órbita Luna</button>
                 <button id="sunBtn" onclick="toggleSunOrbit()">☀️ Órbita Sol</button>
+                <button id="musicBtn" onclick="toggleMusic()">🎵 Música</button>
                 <button onclick="reset()">🔄 Reiniciar</button>
             </div>
-            <p class="instruction">Haz clic en el canvas para posicionar la Luna manualmente</p>
+            <p class="instruction">Haz clic en el canvas para posicionar la Luna manualmente | 🎵 Música de ambiente espacial disponible</p>
+            
+            <!-- Audio de fondo espacial -->
+            <audio id="spaceMusic" loop volume="0.3">
+                <!-- Usando música espacial de FreePD (dominio público) -->
+                <source src="https://freepd.com/music/Ambient%20Space.mp3" type="audio/mpeg">
+                <!-- Alternativa: -->
+                <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+            </audio>
         </div>
         
         <div class="info-box">
@@ -769,6 +778,93 @@
             document.getElementById('sunBtn').textContent = '☀️ Órbita Sol';
             document.getElementById('sunBtn').classList.remove('active');
             draw();
+        }
+        
+        let isUsingWebAudio = false;
+        
+        function toggleMusic() {
+            const audio = document.getElementById('spaceMusic');
+            const btn = document.getElementById('musicBtn');
+            
+            if (audio.paused && !isUsingWebAudio) {
+                audio.volume = 0.3; // Volumen al 30%
+                audio.play().then(() => {
+                    btn.textContent = '🔇 Silenciar';
+                    btn.classList.add('active');
+                }).catch(err => {
+                    console.log('No se pudo reproducir el audio externo, usando generador:', err);
+                    // Si falla la URL externa, crear un ambiente espacial generativo
+                    createSpaceAmbience();
+                    isUsingWebAudio = true;
+                });
+            } else if (isUsingWebAudio) {
+                // Detener el audio generativo
+                if (window.spaceOscillator && Array.isArray(window.spaceOscillator)) {
+                    window.spaceOscillator.forEach(({ osc, lfo }) => {
+                        osc.stop();
+                        lfo.stop();
+                    });
+                    window.spaceAudioContext.close();
+                    window.spaceOscillator = null;
+                    window.spaceAudioContext = null;
+                }
+                isUsingWebAudio = false;
+                btn.textContent = '🎵 Música';
+                btn.classList.remove('active');
+            } else {
+                audio.pause();
+                btn.textContent = '🎵 Música';
+                btn.classList.remove('active');
+            }
+        }
+        
+        // Crear ambiente espacial generativo con Web Audio API si falla el audio externo
+        function createSpaceAmbience() {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            
+            const audioContext = new AudioContext();
+            const masterGain = audioContext.createGain();
+            masterGain.gain.setValueAtTime(0.15, audioContext.currentTime);
+            masterGain.connect(audioContext.destination);
+            
+            // Crear múltiples osciladores para un sonido más rico
+            const oscillators = [];
+            const frequencies = [55, 82.5, 110, 165]; // Notas A en diferentes octavas
+            
+            frequencies.forEach((freq, index) => {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+                gain.gain.setValueAtTime(0.03, audioContext.currentTime);
+                
+                // Añadir modulación lenta para crear ambiente
+                const lfo = audioContext.createOscillator();
+                const lfoGain = audioContext.createGain();
+                lfo.frequency.setValueAtTime(0.1 + index * 0.05, audioContext.currentTime);
+                lfoGain.gain.setValueAtTime(2, audioContext.currentTime);
+                
+                lfo.connect(lfoGain);
+                lfoGain.connect(osc.frequency);
+                
+                osc.connect(gain);
+                gain.connect(masterGain);
+                
+                osc.start();
+                lfo.start();
+                
+                oscillators.push({ osc, lfo });
+            });
+            
+            // Guardar referencias para poder detenerlo
+            window.spaceOscillator = oscillators;
+            window.spaceAudioContext = audioContext;
+            
+            const btn = document.getElementById('musicBtn');
+            btn.textContent = '🔇 Silenciar';
+            btn.classList.add('active');
         }
         
         canvas.addEventListener('click', (e) => {

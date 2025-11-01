@@ -147,10 +147,11 @@
                 <button id="rotateBtn" onclick="toggleRotation()">▶️ Rotar Tierra</button>
                 <button id="moonBtn" onclick="toggleOrbit()">🌙 Órbita Luna</button>
                 <button id="sunBtn" onclick="toggleSunOrbit()">☀️ Órbita Sol</button>
+                <button id="speedBtn" onclick="toggleSpeed()">⚡ Velocidad: x1</button>
                 <button id="musicBtn" onclick="toggleMusic()">🎵 Música</button>
                 <button onclick="reset()">🔄 Reiniciar</button>
             </div>
-            <p class="instruction">Haz clic en el canvas para posicionar la Luna manualmente | 🎵 Música de ambiente espacial disponible | 🔊 Anuncios por voz: transiciones de mareas y cambios de fecha</p>
+            <p class="instruction">Haz clic en el canvas para posicionar la Luna manualmente | ⚡ Control de velocidad: x1→x2→x4→x8→x16→x20 | 🎵 Música de ambiente espacial disponible | 🔊 Anuncios por voz: transiciones de mareas y cambios de fecha</p>
             
             <!-- Audio de fondo espacial -->
             <audio id="spaceMusic" loop volume="0.3">
@@ -180,9 +181,10 @@
             </ul>
             <p><strong>☀️ Mareas Vivas y Muertas:</strong></p>
             <ul>
-                <li><strong style="color: #ff4444;">Mareas VIVAS (~9m):</strong> Ocurren cuando el Sol, la Luna y la Tierra están alineados (luna nueva o llena). Las fuerzas gravitacionales se suman, creando las mareas más extremas.</li>
-                <li><strong style="color: #4fc3f7;">Mareas MUERTAS (~5m):</strong> Ocurren cuando el Sol y la Luna están perpendiculares. Sus efectos se contrarrestan parcialmente, creando mareas más moderadas.</li>
+                <li><strong style="color: #ff4444;">Mareas VIVAS (~9m):</strong> Ocurren cuando el Sol, la Luna y la Tierra están alineados (luna nueva o llena). Las fuerzas gravitacionales se suman, creando las mareas más extremas. <em>Suceden cada ~14-15 días</em>.</li>
+                <li><strong style="color: #4fc3f7;">Mareas MUERTAS (~5m):</strong> Ocurren cuando el Sol y la Luna están perpendiculares (cuarto creciente/menguante). Sus efectos se contrarrestan parcialmente.</li>
             </ul>
+            <p><strong>🌙 Ciclo lunar:</strong> La Luna completa su órbita en ~29 días. Las mareas vivas ocurren en luna nueva (Sol-Luna alineados) y luna llena (Sol-Luna opuestos), aproximadamente cada 14-15 días.</p>
             <p><strong>🔊 Anuncios por voz:</strong> El sistema anuncia automáticamente usando síntesis de voz en español:</p>
             <ul>
                 <li><strong>"Cambiando a marea viva. Sol más Luna alineados"</strong> - Al pasar de marea alta a viva</li>
@@ -239,6 +241,7 @@
         let time = 12;
         let day = 1; // Día del mes
         let month = 1; // Mes (1 = enero)
+        let speedMultiplier = 1; // Multiplicador de velocidad (x1, x2, x4, x8, x16, x20)
         
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
@@ -793,8 +796,8 @@
             if (!isRotating && !isOrbiting && !isSunOrbiting) return;
             
             if (isRotating) {
-                earthRotation += 0.002;  // Reducido de 0.008 a 0.002 (4x más lento)
-                time += 0.01;  // Reducido de 0.04 a 0.01
+                earthRotation += 0.002 * speedMultiplier;  // Reducido de 0.008 a 0.002 (4x más lento)
+                time += 0.01 * speedMultiplier;  // Reducido de 0.04 a 0.01
                 
                 // Actualizar día cuando pasa un día completo
                 if (time >= 24) {
@@ -817,11 +820,16 @@
             }
             
             if (isOrbiting) {
-                moonAngle += 0.001;  // Reducido de 0.005 a 0.001 (5x más lento)
+                // Luna completa órbita en ~29 días
+                // Para alinearse cada ~14.5 días (medio ciclo lunar)
+                // Velocidad: 2π / (29 días * 2400 frames/día) ≈ 0.0000904 rad/frame
+                moonAngle += 0.00009 * speedMultiplier;  // Órbita lunar realista
             }
             
             if (isSunOrbiting) {
-                sunAngle += 0.0004;  // El Sol orbita más lento (año vs mes)
+                // Sol aparentemente completa órbita en 365 días (mucho más lento)
+                // Velocidad: 2π / (365 días * 2400 frames/día) ≈ 0.0000072 rad/frame
+                sunAngle += 0.000007 * speedMultiplier;  // Movimiento aparente anual del Sol
             }
             
             draw();
@@ -864,6 +872,17 @@
             }
         }
         
+        function toggleSpeed() {
+            // Ciclo de velocidades: x1 -> x2 -> x4 -> x8 -> x16 -> x20 -> x1
+            const speeds = [1, 2, 4, 8, 16, 20];
+            const currentIndex = speeds.indexOf(speedMultiplier);
+            const nextIndex = (currentIndex + 1) % speeds.length;
+            speedMultiplier = speeds[nextIndex];
+            
+            const btn = document.getElementById('speedBtn');
+            btn.textContent = `⚡ Velocidad: x${speedMultiplier}`;
+        }
+        
         function reset() {
             isRotating = false;
             isOrbiting = false;
@@ -874,6 +893,7 @@
             time = 12;
             day = 1;
             month = 1;
+            speedMultiplier = 1; // Resetear velocidad a x1
             previousTideState = null; // Resetear el estado de marea
             if (animationId) {
                 cancelAnimationFrame(animationId);
@@ -888,6 +908,7 @@
             document.getElementById('moonBtn').classList.remove('active');
             document.getElementById('sunBtn').textContent = '☀️ Órbita Sol';
             document.getElementById('sunBtn').classList.remove('active');
+            document.getElementById('speedBtn').textContent = '⚡ Velocidad: x1';
             draw();
         }
         

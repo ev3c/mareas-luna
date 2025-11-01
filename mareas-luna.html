@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mareas y la Luna</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .container {
+            max-width: 1300px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+        
+        .subtitle {
+            text-align: center;
+            opacity: 0.8;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .canvas-container {
+            background: rgba(10, 25, 41, 0.8);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        
+        canvas {
+            display: block;
+            margin: 0 auto;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+            border-radius: 10px;
+            cursor: crosshair;
+            box-shadow: 0 0 40px rgba(100, 150, 255, 0.3);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        button.active {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+        
+        .info-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-box h3 {
+            margin-top: 0;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+        
+        .instruction {
+            text-align: center;
+            font-style: italic;
+            opacity: 0.7;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .time-display {
+            text-align: center;
+            font-size: 18px;
+            margin-top: 15px;
+            color: #4fc3f7;
+            text-shadow: 0 0 5px rgba(79, 195, 247, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌊 Las Mareas y la Luna 🌙</h1>
+        <p class="subtitle">Visualización realista del efecto de marea gravitacional</p>
+        
+        <div class="canvas-container">
+            <canvas id="tideCanvas" width="1200" height="900"></canvas>
+            <div class="time-display" id="timeDisplay">01/Ene - Hora local: 12:00</div>
+            <div class="controls">
+                <button id="rotateBtn" onclick="toggleRotation()">▶️ Rotar Tierra</button>
+                <button id="moonBtn" onclick="toggleOrbit()">🌙 Órbita Luna</button>
+                <button id="sunBtn" onclick="toggleSunOrbit()">☀️ Órbita Sol</button>
+                <button onclick="reset()">🔄 Reiniciar</button>
+            </div>
+            <p class="instruction">Haz clic en el canvas para posicionar la Luna manualmente</p>
+        </div>
+        
+        <div class="info-box">
+            <h3>💡 Cómo funciona</h3>
+            <p><strong>Dos mareas altas (rojo intenso):</strong></p>
+            <ul>
+                <li>Una hacia la Luna: la atracción gravitatoria levanta el océano</li>
+                <li>Una en el lado opuesto: la Tierra se aleja del agua (efecto inercial)</li>
+            </ul>
+            <p><strong>Dos mareas bajas (azul oscuro):</strong> En los puntos perpendiculares a la Luna, el agua ha sido "robada" por los abombamientos</p>
+            <p><strong>Ejemplo práctico:</strong> Cuando la Luna está sobre el Atlántico, Nueva York y Lisboa experimentan marea ALTA simultáneamente</p>
+            <p><strong>🔴 Punto de referencia rojo:</strong> Observa cómo el punto rojo (con flecha) <em>siempre mantiene la misma orientación respecto a la Tierra</em> mientras la Luna orbita. Esto demuestra el acoplamiento de marea: la Luna rota sincronizada con su órbita, mostrando siempre la misma cara. ¡Por eso nunca vemos el "lado oscuro" desde la Tierra!</p>
+            <p><strong>📏 Escala realista:</strong></p>
+            <ul>
+                <li><strong>Tamaños Tierra-Luna:</strong> Proporcionales a la realidad. La Luna tiene 27.3% del radio de la Tierra (1,737 km vs 6,371 km).</li>
+                <li><strong>Mareas:</strong> En la Tierra real, la marea alta es ~1 metro sobre un radio de 6,371 km. Aquí está exagerada ~20x para visibilidad.</li>
+                <li><strong>Sol:</strong> No está a escala (el Sol real es 109 veces más grande que la Tierra).</li>
+            </ul>
+            <p><strong>☀️ Mareas Vivas y Muertas:</strong></p>
+            <ul>
+                <li><strong style="color: #ff4444;">Mareas VIVAS (~9m):</strong> Ocurren cuando el Sol, la Luna y la Tierra están alineados (luna nueva o llena). Las fuerzas gravitacionales se suman, creando las mareas más extremas.</li>
+                <li><strong style="color: #4fc3f7;">Mareas MUERTAS (~5m):</strong> Ocurren cuando el Sol y la Luna están perpendiculares. Sus efectos se contrarrestan parcialmente, creando mareas más moderadas.</li>
+            </ul>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: radial-gradient(circle, #ffff00, #ff9900);"></div>
+                <span>☀️ Sol</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: radial-gradient(circle at 30% 30%, #fff8dc, #ffd700);"></div>
+                <span>🌙 Luna</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #2196F3;"></div>
+                <span>Océanos</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: radial-gradient(circle, #ff4444, #cc0000);"></div>
+                <span>Marea ALTA</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #0d47a1;"></div>
+                <span>Marea BAJA</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff0000; border: 2px solid white;"></div>
+                <span>🔴 Punto de referencia</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('tideCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let earthRotation = 0;
+        let moonAngle = 0;
+        let sunAngle = 0; // Ángulo del Sol (inicialmente alineado con la Luna = mareas vivas)
+        let isRotating = false;
+        let isOrbiting = false;
+        let isSunOrbiting = false; // Órbita del Sol
+        let animationId = null;
+        let earthImage = null;
+        let moonImage = null;
+        let imageLoaded = false;
+        let moonImageLoaded = false;
+        let time = 12;
+        let day = 1; // Día del mes
+        let month = 1; // Mes (1 = enero)
+        
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const earthRadius = 100; // Radio Tierra = 6,371 km
+        const moonDistance = 250;
+        const moonRadius = 27.3; // Proporción real: 27.3% del radio terrestre (Luna = 1,737 km)
+        const sunDistance = 400;
+        const sunRadius = 35; // Nota: El Sol real es 109x más grande que la Tierra (no a escala para visibilidad)
+        
+        // Cargar textura realista de la Tierra
+        function loadEarthTexture() {
+            earthImage = new Image();
+            earthImage.crossOrigin = "anonymous";
+            earthImage.onload = () => {
+                imageLoaded = true;
+                draw();
+            };
+            // Textura realista de la Tierra (Blue Marble de la NASA)
+            earthImage.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/480px-The_Earth_seen_from_Apollo_17.jpg';
+        }
+        
+        // Cargar textura realista de la Luna
+        function loadMoonTexture() {
+            moonImage = new Image();
+            moonImage.crossOrigin = "anonymous";
+            moonImage.onload = () => {
+                moonImageLoaded = true;
+                draw();
+            };
+            // Textura realista de la Luna de la NASA
+            moonImage.src = 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/FullMoon2010.jpg/480px-FullMoon2010.jpg';
+        }
+        
+        function drawStars() {
+            ctx.fillStyle = 'white';
+            for (let i = 0; i < 300; i++) {
+                const x = (i * 137.508) % canvas.width;
+                const y = (i * 197.386) % canvas.height;
+                const size = (i % 3) * 0.5 + 0.5;
+                ctx.globalAlpha = 0.3 + (i % 5) * 0.1;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1;
+        }
+        
+        function drawMoon(angle) {
+            const moonX = centerX + Math.cos(angle) * moonDistance;
+            const moonY = centerY + Math.sin(angle) * moonDistance;
+            
+            ctx.save();
+            ctx.translate(moonX, moonY);
+            
+            // La luna rota sincronizada con su órbita (acoplamiento de marea)
+            // Siempre muestra la misma cara hacia la tierra
+            ctx.rotate(angle + Math.PI / 2);
+            
+            // Sombra de la luna
+            ctx.shadowColor = 'rgba(255, 215, 0, 0.5)';
+            ctx.shadowBlur = 15;
+            
+            // Clip circular para la luna
+            ctx.beginPath();
+            ctx.arc(0, 0, moonRadius, 0, Math.PI * 2);
+            ctx.clip();
+            
+            if (moonImageLoaded) {
+                // Dibujar textura realista de la Luna
+                ctx.drawImage(moonImage, -moonRadius, -moonRadius, moonRadius * 2, moonRadius * 2);
+            } else {
+                // Luna con gradiente como fallback
+                const gradient = ctx.createRadialGradient(-10, -10, 5, 0, 0, moonRadius);
+                gradient.addColorStop(0, '#fff8dc');
+                gradient.addColorStop(0.5, '#ffd700');
+                gradient.addColorStop(1, '#daa520');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, moonRadius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Cráteres como fallback
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(139, 69, 19, 0.3)';
+                ctx.beginPath();
+                ctx.arc(8, 5, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(-10, 8, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(-5, -8, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.restore();
+            
+            // PUNTO DE REFERENCIA EN EL BORDE de la Luna para visualizar la rotación
+            ctx.save();
+            ctx.translate(moonX, moonY);
+            ctx.rotate(angle + Math.PI / 2);
+            ctx.shadowBlur = 0;
+            
+            // Posición del punto en el borde de la Luna
+            const pointDistance = moonRadius;
+            
+            // Flecha desde el punto hacia el centro de la Luna
+            ctx.strokeStyle = '#ff3333';
+            ctx.fillStyle = '#ff3333';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -pointDistance);
+            ctx.lineTo(0, 0);
+            ctx.stroke();
+            
+            // Punta de flecha apuntando hacia el centro
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(-4, -6);
+            ctx.lineTo(4, -6);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Punto rojo brillante EN EL BORDE de la Luna
+            ctx.fillStyle = '#ff0000';
+            ctx.beginPath();
+            ctx.arc(0, -pointDistance, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Borde blanco para destacar más
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, -pointDistance, 5, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Etiqueta
+            ctx.font = 'bold 9px Arial';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+            ctx.shadowBlur = 3;
+            ctx.fillText('REF', 0, -pointDistance - 12);
+            
+            ctx.restore();
+            
+            // Borde de la luna
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+            
+            return {x: moonX, y: moonY};
+        }
+        
+        function drawSun(angle) {
+            const sunX = centerX + Math.cos(angle) * sunDistance;
+            const sunY = centerY + Math.sin(angle) * sunDistance;
+            
+            // Resplandor del sol
+            ctx.shadowColor = 'rgba(255, 200, 0, 0.8)';
+            ctx.shadowBlur = 30;
+            
+            // Sol con gradiente amarillo-naranja
+            const gradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius);
+            gradient.addColorStop(0, '#ffff00');
+            gradient.addColorStop(0.5, '#ffcc00');
+            gradient.addColorStop(1, '#ff9900');
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Texto "-109" dentro del Sol
+            ctx.shadowBlur = 0;
+            ctx.font = 'bold 16px Arial';
+            ctx.fillStyle = '#000000';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('×109', sunX, sunY);
+            
+            // Rayos del sol
+            ctx.strokeStyle = 'rgba(255, 200, 0, 0.6)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 12; i++) {
+                const rayAngle = (i * Math.PI / 6) + angle;
+                const innerDist = sunRadius + 3;
+                const outerDist = sunRadius + 15;
+                ctx.beginPath();
+                ctx.moveTo(sunX + Math.cos(rayAngle) * innerDist, sunY + Math.sin(rayAngle) * innerDist);
+                ctx.lineTo(sunX + Math.cos(rayAngle) * outerDist, sunY + Math.sin(rayAngle) * outerDist);
+                ctx.stroke();
+            }
+            
+            ctx.shadowBlur = 0;
+            
+            return {x: sunX, y: sunY};
+        }
+        
+        function drawTidalBulge() {
+            // Altura real de marea proporcional
+            // En la realidad: Radio Tierra = 6,371 km, Marea = ~1m
+            // Proporción: 1m / 6,371,000m ≈ 0.000157
+            // Aquí: 150px * 0.000157 ≈ 0.024px (invisible)
+            // Usamos 6px para la Luna (exagerado ~20x para ver el efecto)
+            const moonBulgeScale = 6;
+            // El Sol tiene ~46% del efecto de la Luna
+            const sunBulgeScale = moonBulgeScale * 0.46;
+            
+            ctx.fillStyle = 'rgba(33, 150, 243, 0.6)';
+            ctx.beginPath();
+            for (let i = 0; i <= 360; i++) {
+                const rad = i * Math.PI / 180;
+                // Efecto combinado: Luna + Sol
+                const moonEffect = Math.cos(2 * (rad - moonAngle)) * moonBulgeScale;
+                const sunEffect = Math.cos(2 * (rad - sunAngle)) * sunBulgeScale;
+                const tideEffect = moonEffect + sunEffect;
+                const r = earthRadius + tideEffect;
+                const x = centerX + Math.cos(rad) * r;
+                const y = centerY + Math.sin(rad) * r;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            
+            // Gradientes de marea alta (rojo) y baja (azul oscuro)
+            for (let i = 0; i <= 360; i += 2) {
+                const rad = i * Math.PI / 180;
+                // Efecto combinado de Luna y Sol
+                const moonEffect = Math.cos(2 * (rad - moonAngle)) * moonBulgeScale;
+                const sunEffect = Math.cos(2 * (rad - sunAngle)) * sunBulgeScale;
+                const tideEffect = moonEffect + sunEffect;
+                const totalBulge = moonBulgeScale + sunBulgeScale;
+                const tideStrength = tideEffect / totalBulge; // Normalizar entre -1 y 1
+                
+                if (tideStrength > 0.3) {
+                    // Marea ALTA (hacia la Luna/Sol Y lado opuesto)
+                    const intensity = tideStrength;
+                    ctx.strokeStyle = `rgba(255, ${100 - intensity * 100}, ${100 - intensity * 100}, ${intensity * 0.8})`;
+                } else if (tideStrength < -0.3) {
+                    // Marea BAJA (perpendicular)
+                    const intensity = -tideStrength;
+                    ctx.strokeStyle = `rgba(13, 71, 161, ${intensity * 0.8})`;
+                } else {
+                    // Transición
+                    ctx.strokeStyle = `rgba(33, 150, 243, 0.6)`;
+                }
+                
+                ctx.lineWidth = 2; // Más delgado para escala realista
+                const r = earthRadius + tideEffect;
+                const x = centerX + Math.cos(rad) * r;
+                const y = centerY + Math.sin(rad) * r;
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX + Math.cos(rad) * earthRadius, centerY + Math.sin(rad) * earthRadius);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
+            
+            // Destacar visualmente las mareas más altas con efectos brillantes
+            // Encontrar los dos puntos de marea máxima
+            let maxTide1 = -Infinity, maxTide1Angle = 0;
+            let maxTide2 = -Infinity, maxTide2Angle = 0;
+            
+            for (let i = 0; i <= 360; i += 5) {
+                const rad = i * Math.PI / 180;
+                const moonEffect = Math.cos(2 * (rad - moonAngle)) * moonBulgeScale;
+                const sunEffect = Math.cos(2 * (rad - sunAngle)) * sunBulgeScale;
+                const tideEffect = moonEffect + sunEffect;
+                
+                if (tideEffect > maxTide1) {
+                    maxTide2 = maxTide1;
+                    maxTide2Angle = maxTide1Angle;
+                    maxTide1 = tideEffect;
+                    maxTide1Angle = rad;
+                } else if (tideEffect > maxTide2) {
+                    maxTide2 = tideEffect;
+                    maxTide2Angle = rad;
+                }
+            }
+            
+            const glowSize = (moonBulgeScale + sunBulgeScale) * 5;
+            
+            // Marea alta 1
+            const highTide1X = centerX + Math.cos(maxTide1Angle) * (earthRadius + maxTide1);
+            const highTide1Y = centerY + Math.sin(maxTide1Angle) * (earthRadius + maxTide1);
+            const grad1 = ctx.createRadialGradient(highTide1X, highTide1Y, 0, highTide1X, highTide1Y, glowSize);
+            grad1.addColorStop(0, 'rgba(255, 80, 80, 0.9)');
+            grad1.addColorStop(0.5, 'rgba(255, 100, 100, 0.5)');
+            grad1.addColorStop(1, 'rgba(255, 50, 50, 0)');
+            ctx.fillStyle = grad1;
+            ctx.fillRect(highTide1X - glowSize, highTide1Y - glowSize, glowSize * 2, glowSize * 2);
+            
+            // Marea alta 2
+            const highTide2X = centerX + Math.cos(maxTide2Angle) * (earthRadius + maxTide2);
+            const highTide2Y = centerY + Math.sin(maxTide2Angle) * (earthRadius + maxTide2);
+            const grad2 = ctx.createRadialGradient(highTide2X, highTide2Y, 0, highTide2X, highTide2Y, glowSize);
+            grad2.addColorStop(0, 'rgba(255, 80, 80, 0.9)');
+            grad2.addColorStop(0.5, 'rgba(255, 100, 100, 0.5)');
+            grad2.addColorStop(1, 'rgba(255, 50, 50, 0)');
+            ctx.fillStyle = grad2;
+            ctx.fillRect(highTide2X - glowSize, highTide2Y - glowSize, glowSize * 2, glowSize * 2);
+        }
+        
+        function drawEarth(rotation) {
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            
+            // Clip circular
+            ctx.beginPath();
+            ctx.arc(0, 0, earthRadius, 0, Math.PI * 2);
+            ctx.clip();
+            
+            if (imageLoaded) {
+                ctx.rotate(rotation);
+                ctx.drawImage(earthImage, -earthRadius, -earthRadius, earthRadius * 2, earthRadius * 2);
+            } else {
+                // Fondo azul oceánico si no hay imagen
+                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, earthRadius);
+                gradient.addColorStop(0, '#4a90e2');
+                gradient.addColorStop(1, '#1e3a5f');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(-earthRadius, -earthRadius, earthRadius * 2, earthRadius * 2);
+            }
+            
+            ctx.restore();
+            
+            // Borde de la tierra
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, earthRadius, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        
+        function drawLabels() {
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+            ctx.shadowBlur = 4;
+            
+            // Calcular si es marea viva (Sol y Luna alineados)
+            const angleDiff = Math.abs(((sunAngle - moonAngle + Math.PI) % (2 * Math.PI)) - Math.PI);
+            const isSpringTide = angleDiff < Math.PI / 6 || angleDiff > 5 * Math.PI / 6; // Alineados (mismo lado o opuestos)
+            
+            const labelDist = earthRadius + 70;
+            
+            // Marea ALTA/VIVA hacia la Luna
+            const x1 = centerX + Math.cos(moonAngle) * labelDist;
+            const y1 = centerY + Math.sin(moonAngle) * labelDist;
+            ctx.fillStyle = isSpringTide ? '#ff0000' : '#ff4444';
+            ctx.fillText(isSpringTide ? 'MAREA VIVA' : 'MAREA ALTA', x1, y1 - 8);
+            ctx.font = '12px Arial';
+            ctx.fillStyle = isSpringTide ? '#ffcccc' : '#ffaaaa';
+            ctx.fillText(isSpringTide ? '(Sol + Luna alineados)' : '(atracción lunar)', x1, y1 + 8);
+            
+            // Marea ALTA/VIVA lado opuesto
+            ctx.font = 'bold 16px Arial';
+            const x2 = centerX + Math.cos(moonAngle + Math.PI) * labelDist;
+            const y2 = centerY + Math.sin(moonAngle + Math.PI) * labelDist;
+            ctx.fillStyle = isSpringTide ? '#ff0000' : '#ff4444';
+            ctx.fillText(isSpringTide ? 'MAREA VIVA' : 'MAREA ALTA', x2, y2 - 8);
+            ctx.font = '12px Arial';
+            ctx.fillStyle = isSpringTide ? '#ffcccc' : '#ffaaaa';
+            ctx.fillText(isSpringTide ? '(Sol + Luna alineados)' : '(efecto inercial)', x2, y2 + 8);
+            
+            // Mareas BAJAS
+            ctx.font = 'bold 16px Arial';
+            const x3 = centerX + Math.cos(moonAngle + Math.PI/2) * labelDist;
+            const y3 = centerY + Math.sin(moonAngle + Math.PI/2) * labelDist;
+            ctx.fillStyle = '#1976d2';
+            ctx.fillText('MAREA BAJA', x3, y3);
+            
+            const x4 = centerX + Math.cos(moonAngle - Math.PI/2) * labelDist;
+            const y4 = centerY + Math.sin(moonAngle - Math.PI/2) * labelDist;
+            ctx.fillStyle = '#1976d2';
+            ctx.fillText('MAREA BAJA', x4, y4);
+            
+            ctx.shadowBlur = 0;
+        }
+        
+        function drawGravityLines(moonPos) {
+            ctx.setLineDash([10, 5]);
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+            ctx.lineWidth = 2;
+            
+            // Líneas hacia la tierra
+            for (let i = 0; i < 8; i++) {
+                const angle = moonAngle + (Math.PI / 4) * (i / 8 - 0.5);
+                ctx.beginPath();
+                ctx.moveTo(moonPos.x, moonPos.y);
+                ctx.lineTo(centerX + Math.cos(angle) * earthRadius, centerY + Math.sin(angle) * earthRadius);
+                ctx.stroke();
+            }
+            
+            ctx.setLineDash([]);
+        }
+        
+        function drawSunGravityLines(sunPos) {
+            ctx.setLineDash([10, 5]);
+            ctx.strokeStyle = 'rgba(255, 200, 0, 0.3)';
+            ctx.lineWidth = 2;
+            
+            // Líneas desde el Sol hacia la Tierra
+            for (let i = 0; i < 8; i++) {
+                const angle = sunAngle + (Math.PI / 4) * (i / 8 - 0.5);
+                ctx.beginPath();
+                ctx.moveTo(sunPos.x, sunPos.y);
+                ctx.lineTo(centerX + Math.cos(angle) * earthRadius, centerY + Math.sin(angle) * earthRadius);
+                ctx.stroke();
+            }
+            
+            ctx.setLineDash([]);
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawStars();
+            const sun = drawSun(sunAngle);
+            drawSunGravityLines(sun);
+            drawTidalBulge();
+            drawEarth(earthRotation);
+            
+            const moon = drawMoon(moonAngle);
+            drawGravityLines(moon);
+            drawLabels();
+            
+            // Calcular y mostrar tipo de marea
+            const angleDiff = Math.abs(((sunAngle - moonAngle + Math.PI) % (2 * Math.PI)) - Math.PI);
+            const isSpringTide = angleDiff < Math.PI / 6 || angleDiff > 5 * Math.PI / 6; // Alineados o opuestos
+            const isNeapTide = angleDiff > Math.PI / 3 && angleDiff < 2 * Math.PI / 3; // Perpendiculares
+            
+            // Actualizar fecha, hora y tipo de marea
+            const hours = Math.floor(time) % 24;
+            const minutes = Math.floor((time % 1) * 60);
+            const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+            let tideInfo = `${day.toString().padStart(2, '0')}/${monthNames[month - 1]} - Hora local: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            
+            if (isSpringTide) {
+                tideInfo += ' | 🌊 <strong style="color: #ff4444;">MAREAS VIVAS</strong> - Máxima amplitud (~9m)';
+            } else if (isNeapTide) {
+                tideInfo += ' | 🌊 <strong style="color: #4fc3f7;">MAREAS MUERTAS</strong> - Mínima amplitud (~5m)';
+            } else {
+                tideInfo += ' | 🌊 Mareas normales (~7m)';
+            }
+            
+            document.getElementById('timeDisplay').innerHTML = tideInfo;
+        }
+        
+        function animate() {
+            if (!isRotating && !isOrbiting && !isSunOrbiting) return;
+            
+            if (isRotating) {
+                earthRotation += 0.002;  // Reducido de 0.008 a 0.002 (4x más lento)
+                time += 0.01;  // Reducido de 0.04 a 0.01
+                
+                // Actualizar día cuando pasa un día completo
+                if (time >= 24) {
+                    time = time % 24;
+                    day++;
+                    
+                    // Días por mes (simplificado, sin años bisiestos)
+                    const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+                    if (day > daysInMonth[month - 1]) {
+                        day = 1;
+                        month++;
+                        if (month > 12) {
+                            month = 1;
+                        }
+                    }
+                }
+            }
+            
+            if (isOrbiting) {
+                moonAngle += 0.001;  // Reducido de 0.005 a 0.001 (5x más lento)
+            }
+            
+            if (isSunOrbiting) {
+                sunAngle += 0.0004;  // El Sol orbita más lento (año vs mes)
+            }
+            
+            draw();
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        function toggleRotation() {
+            isRotating = !isRotating;
+            const btn = document.getElementById('rotateBtn');
+            btn.textContent = isRotating ? '⏸️ Pausar' : '▶️ Rotar Tierra';
+            btn.classList.toggle('active');
+            if (isRotating || isOrbiting || isSunOrbiting) {
+                animate();
+            } else if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function toggleOrbit() {
+            isOrbiting = !isOrbiting;
+            const btn = document.getElementById('moonBtn');
+            btn.textContent = isOrbiting ? '⏸️ Pausar Luna' : '🌙 Órbita Luna';
+            btn.classList.toggle('active');
+            if (isRotating || isOrbiting || isSunOrbiting) {
+                animate();
+            } else if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function toggleSunOrbit() {
+            isSunOrbiting = !isSunOrbiting;
+            const btn = document.getElementById('sunBtn');
+            btn.textContent = isSunOrbiting ? '⏸️ Pausar Sol' : '☀️ Órbita Sol';
+            btn.classList.toggle('active');
+            if (isRotating || isOrbiting || isSunOrbiting) {
+                animate();
+            } else if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        }
+        
+        function reset() {
+            isRotating = false;
+            isOrbiting = false;
+            isSunOrbiting = false;
+            earthRotation = 0;
+            moonAngle = 0;
+            sunAngle = 0;
+            time = 12;
+            day = 1;
+            month = 1;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            document.getElementById('rotateBtn').textContent = '▶️ Rotar Tierra';
+            document.getElementById('rotateBtn').classList.remove('active');
+            document.getElementById('moonBtn').textContent = '🌙 Órbita Luna';
+            document.getElementById('moonBtn').classList.remove('active');
+            document.getElementById('sunBtn').textContent = '☀️ Órbita Sol';
+            document.getElementById('sunBtn').classList.remove('active');
+            draw();
+        }
+        
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            moonAngle = Math.atan2(y - centerY, x - centerX);
+            draw();
+        });
+        
+        // Inicializar
+        loadEarthTexture();
+        loadMoonTexture();
+    </script>
+</body>
+</html>

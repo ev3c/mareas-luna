@@ -150,7 +150,7 @@
                 <button id="musicBtn" onclick="toggleMusic()">🎵 Música</button>
                 <button onclick="reset()">🔄 Reiniciar</button>
             </div>
-            <p class="instruction">Haz clic en el canvas para posicionar la Luna manualmente | 🎵 Música de ambiente espacial disponible</p>
+            <p class="instruction">Haz clic en el canvas para posicionar la Luna manualmente | 🎵 Música de ambiente espacial disponible | 🔊 Anuncios por voz: transiciones de mareas y cambios de fecha</p>
             
             <!-- Audio de fondo espacial -->
             <audio id="spaceMusic" loop volume="0.3">
@@ -169,6 +169,7 @@
                 <li>Una en el lado opuesto: la Tierra se aleja del agua (efecto inercial)</li>
             </ul>
             <p><strong>Dos mareas bajas (azul oscuro):</strong> En los puntos perpendiculares a la Luna, el agua ha sido "robada" por los abombamientos</p>
+            <p><strong>📝 Etiquetas dinámicas:</strong> Las etiquetas en la órbita cambian automáticamente entre "MAREA ALTA" (rojo) y "MAREA VIVA" (rojo intenso) según la alineación del Sol y la Luna. Observa cómo el texto y el color se actualizan en tiempo real.</p>
             <p><strong>Ejemplo práctico:</strong> Cuando la Luna está sobre el Atlántico, Nueva York y Lisboa experimentan marea ALTA simultáneamente</p>
             <p><strong>🔴 Punto de referencia rojo:</strong> Observa cómo el punto rojo (con flecha) <em>siempre mantiene la misma orientación respecto a la Tierra</em> mientras la Luna orbita. Esto demuestra el acoplamiento de marea: la Luna rota sincronizada con su órbita, mostrando siempre la misma cara. ¡Por eso nunca vemos el "lado oscuro" desde la Tierra!</p>
             <p><strong>📏 Escala realista:</strong></p>
@@ -182,6 +183,13 @@
                 <li><strong style="color: #ff4444;">Mareas VIVAS (~9m):</strong> Ocurren cuando el Sol, la Luna y la Tierra están alineados (luna nueva o llena). Las fuerzas gravitacionales se suman, creando las mareas más extremas.</li>
                 <li><strong style="color: #4fc3f7;">Mareas MUERTAS (~5m):</strong> Ocurren cuando el Sol y la Luna están perpendiculares. Sus efectos se contrarrestan parcialmente, creando mareas más moderadas.</li>
             </ul>
+            <p><strong>🔊 Anuncios por voz:</strong> El sistema anuncia automáticamente usando síntesis de voz en español:</p>
+            <ul>
+                <li><strong>"Cambiando a marea viva. Sol más Luna alineados"</strong> - Al pasar de marea alta a viva</li>
+                <li><strong>"Cambiando a marea alta. Atracción lunar y efecto inercial"</strong> - Al pasar de marea viva a alta</li>
+                <li><strong>"[Día] de [Mes]"</strong> - Cada vez que avanza un día completo (ej: "5 de enero")</li>
+            </ul>
+            <p>Activa las órbitas para experimentar las transiciones automáticas y escuchar los cambios de fecha.</p>
         </div>
         
         <div class="legend">
@@ -223,6 +231,7 @@
         let isOrbiting = false;
         let isSunOrbiting = false; // Órbita del Sol
         let animationId = null;
+        let previousTideState = null; // Para detectar cambios en el tipo de marea
         let earthImage = null;
         let moonImage = null;
         let imageLoaded = false;
@@ -571,19 +580,15 @@
             ctx.stroke();
         }
         
-        function drawLabels() {
+        function drawLabels(isSpringTide) {
             ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
             ctx.shadowBlur = 4;
             
-            // Calcular si es marea viva (Sol y Luna alineados)
-            const angleDiff = Math.abs(((sunAngle - moonAngle + Math.PI) % (2 * Math.PI)) - Math.PI);
-            const isSpringTide = angleDiff < Math.PI / 6 || angleDiff > 5 * Math.PI / 6; // Alineados (mismo lado o opuestos)
-            
             const labelDist = earthRadius + 70;
             
-            // Marea ALTA/VIVA hacia la Luna
+            // Marea ALTA/VIVA hacia la Luna (cambia dinámicamente)
             const x1 = centerX + Math.cos(moonAngle) * labelDist;
             const y1 = centerY + Math.sin(moonAngle) * labelDist;
             ctx.fillStyle = isSpringTide ? '#ff0000' : '#ff4444';
@@ -592,7 +597,7 @@
             ctx.fillStyle = isSpringTide ? '#ffcccc' : '#ffaaaa';
             ctx.fillText(isSpringTide ? '(Sol + Luna alineados)' : '(atracción lunar)', x1, y1 + 8);
             
-            // Marea ALTA/VIVA lado opuesto
+            // Marea ALTA/VIVA lado opuesto (cambia dinámicamente)
             ctx.font = 'bold 16px Arial';
             const x2 = centerX + Math.cos(moonAngle + Math.PI) * labelDist;
             const y2 = centerY + Math.sin(moonAngle + Math.PI) * labelDist;
@@ -662,12 +667,24 @@
             
             const moon = drawMoon(moonAngle);
             drawGravityLines(moon);
-            drawLabels();
             
             // Calcular y mostrar tipo de marea
-            const angleDiff = Math.abs(((sunAngle - moonAngle + Math.PI) % (2 * Math.PI)) - Math.PI);
-            const isSpringTide = angleDiff < Math.PI / 6 || angleDiff > 5 * Math.PI / 6; // Alineados o opuestos
-            const isNeapTide = angleDiff > Math.PI / 3 && angleDiff < 2 * Math.PI / 3; // Perpendiculares
+            // Normalizar ángulos entre 0 y 2*PI
+            const normalizedSunAngle = ((sunAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+            const normalizedMoonAngle = ((moonAngle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+            
+            // Calcular diferencia angular más corta
+            let angleDiff = Math.abs(normalizedSunAngle - normalizedMoonAngle);
+            if (angleDiff > Math.PI) {
+                angleDiff = 2 * Math.PI - angleDiff;
+            }
+            
+            // Determinar tipo de marea
+            const isSpringTide = angleDiff < Math.PI / 6 || angleDiff > 5 * Math.PI / 6; // Alineados (menos de 30° o más de 150°)
+            const isNeapTide = angleDiff > Math.PI / 3 && angleDiff < 2 * Math.PI / 3; // Perpendiculares (entre 60° y 120°)
+            
+            // Dibujar etiquetas con el estado de marea actual
+            drawLabels(isSpringTide);
             
             // Actualizar fecha, hora y tipo de marea
             const hours = Math.floor(time) % 24;
@@ -684,6 +701,92 @@
             }
             
             document.getElementById('timeDisplay').innerHTML = tideInfo;
+            
+            // Detectar cambio en el tipo de marea y anunciar por voz
+            // Controlamos en todo momento si es marea viva o marea alta
+            const currentTideState = isSpringTide ? 'viva' : 'alta';
+            
+            // Solo anunciar si hay un cambio real de estado
+            if (previousTideState !== null && previousTideState !== currentTideState) {
+                console.log(`Cambio de marea: ${previousTideState} -> ${currentTideState} (angleDiff: ${(angleDiff * 180 / Math.PI).toFixed(1)}°)`);
+                announceTideChange(previousTideState, currentTideState);
+            }
+            
+            // Actualizar el estado anterior para la próxima comparación
+            previousTideState = currentTideState;
+        }
+        
+        // Función para anunciar cambios de marea por voz
+        function announceTideChange(fromState, toState) {
+            if ('speechSynthesis' in window) {
+                // Cancelar cualquier anuncio anterior
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance();
+                
+                // Texto según la dirección del cambio
+                if (fromState === 'alta' && toState === 'viva') {
+                    // Cambiando de marea alta a marea viva
+                    utterance.text = 'Cambiando a marea viva. Sol más Luna alineados';
+                } else if (fromState === 'viva' && toState === 'alta') {
+                    // Cambiando de marea viva a marea alta
+                    utterance.text = 'Cambiando a marea alta. Atracción lunar y efecto inercial';
+                } else if (toState === 'viva') {
+                    // Fallback para marea viva
+                    utterance.text = 'Marea viva. Sol más Luna alineados';
+                } else {
+                    // Fallback para marea alta
+                    utterance.text = 'Marea alta. Atracción lunar y efecto inercial';
+                }
+                
+                utterance.lang = 'es-ES';
+                utterance.rate = 0.95;
+                utterance.pitch = 1.0;
+                utterance.volume = 0.8;
+                
+                // Intentar usar una voz en español
+                const voices = window.speechSynthesis.getVoices();
+                const spanishVoice = voices.find(voice => voice.lang.startsWith('es'));
+                if (spanishVoice) {
+                    utterance.voice = spanishVoice;
+                }
+                
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+        
+        // Función para anunciar el cambio de día
+        function announceDay(day, month) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance();
+                const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
+                                   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+                
+                utterance.text = `${day} de ${monthNames[month - 1]}`;
+                utterance.lang = 'es-ES';
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+                utterance.volume = 0.7;
+                
+                // Intentar usar una voz en español
+                const voices = window.speechSynthesis.getVoices();
+                const spanishVoice = voices.find(voice => voice.lang.startsWith('es'));
+                if (spanishVoice) {
+                    utterance.voice = spanishVoice;
+                }
+                
+                // Pequeño delay para no interferir con otros anuncios
+                setTimeout(() => {
+                    window.speechSynthesis.speak(utterance);
+                }, 500);
+            }
+        }
+        
+        // Cargar voces disponibles
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.getVoices();
+            };
         }
         
         function animate() {
@@ -707,6 +810,9 @@
                             month = 1;
                         }
                     }
+                    
+                    // Anunciar el nuevo día por voz
+                    announceDay(day, month);
                 }
             }
             
@@ -768,8 +874,13 @@
             time = 12;
             day = 1;
             month = 1;
+            previousTideState = null; // Resetear el estado de marea
             if (animationId) {
                 cancelAnimationFrame(animationId);
+            }
+            // Cancelar cualquier anuncio de voz pendiente
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
             }
             document.getElementById('rotateBtn').textContent = '▶️ Rotar Tierra';
             document.getElementById('rotateBtn').classList.remove('active');

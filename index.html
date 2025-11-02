@@ -212,13 +212,13 @@
         }
         
         @media (max-width: 480px) {
-            /* Todos los textos al 20% del tamaño PC */
+            /* Todos los textos al 40% del tamaño PC */
             h1 {
-                font-size: 0.4em; /* 20% de 2em */
+                font-size: 0.8em; /* 40% de 2em */
             }
             
             .subtitle {
-                font-size: 0.22em; /* 20% de 1.1em */
+                font-size: 0.44em; /* 40% de 1.1em */
             }
             
             .canvas-container {
@@ -226,59 +226,61 @@
             }
             
             button {
-                padding: 2px 4px; /* Ajustado proporcionalmente */
-                font-size: 3.2px; /* 20% de 16px */
+                padding: 5px 8px; /* Ajustado al tamaño del texto */
+                font-size: 6.4px; /* 40% de 16px */
             }
             
             .controls {
-                gap: 2px; /* Reducido proporcionalmente */
+                gap: 5px;
             }
             
             .instruction {
-                font-size: 2.8px; /* 20% de 14px */
+                font-size: 5.6px; /* 40% de 14px */
+                line-height: 1.6;
             }
             
             .time-display {
-                font-size: 3.6px; /* 20% de 18px */
+                font-size: 7.2px; /* 40% de 18px */
             }
             
             .info-box {
-                font-size: 2.8px; /* 20% de 14px base */
-                padding: 2.4px; /* 20% de 12px */
+                font-size: 5.6px; /* 40% de 14px */
+                padding: 8px;
             }
             
             .info-box h3 {
-                font-size: 0.2em; /* 20% del tamaño base */
+                font-size: 0.4em; /* 40% del tamaño base */
             }
             
             .info-box p {
-                font-size: 2.8px;
+                font-size: 5.6px;
+                line-height: 1.5;
             }
             
             .info-box ul {
-                font-size: 2.8px;
-                padding-left: 4px; /* 20% de 20px */
+                font-size: 5.6px;
+                padding-left: 8px; /* 40% de 20px */
             }
             
             .info-box li {
-                font-size: 2.8px;
-                margin-bottom: 1px;
+                font-size: 5.6px;
+                margin-bottom: 2px;
             }
             
             .legend {
                 grid-template-columns: 1fr;
-                gap: 2px; /* 20% de 8px */
-                font-size: 2.8px; /* 20% de 14px */
+                gap: 5px;
+                font-size: 5.6px; /* 40% de 14px */
             }
             
             .legend-item {
-                font-size: 2.8px;
-                gap: 2px;
+                font-size: 5.6px;
+                gap: 4px;
             }
             
             .legend-color {
-                width: 4.4px; /* 20% de 22px */
-                height: 4.4px;
+                width: 8.8px; /* 40% de 22px */
+                height: 8.8px;
             }
         }
     </style>
@@ -411,7 +413,7 @@
                 canvasWidth = Math.min(containerWidth, 360);
                 canvasHeight = canvasWidth * 0.85; // Relación más cuadrada
                 scale = canvasWidth / 1200;
-                textScale = scale * 0.5; // Texto 50% más pequeño en móviles
+                textScale = scale * 0.4; // Texto 40% del tamaño PC en móviles
             } else if (window.innerWidth <= 768) {
                 // Tablet/Móvil
                 canvasWidth = Math.min(containerWidth, 600);
@@ -579,7 +581,7 @@
             ctx.stroke();
             
             // Etiqueta
-            ctx.font = `bold ${Math.max(9 * textScale, 6)}px Arial`;
+            ctx.font = `bold ${Math.max(9 * textScale, 4)}px Arial`;
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
@@ -651,7 +653,7 @@
             
             // Texto "×109" dentro del Sol (tamaño de fuente ajustado)
             ctx.shadowBlur = 0;
-            ctx.font = `bold ${Math.max(Math.round(16 * sizeScale * textScale), 8)}px Arial`;
+            ctx.font = `bold ${Math.max(Math.round(16 * sizeScale * textScale), 5)}px Arial`;
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -813,8 +815,8 @@
         }
         
         function drawLabels(isSpringTide) {
-            const fontSize = Math.max(16 * textScale, 8);
-            const smallFontSize = Math.max(12 * textScale, 6);
+            const fontSize = Math.max(16 * textScale, 5);
+            const smallFontSize = Math.max(12 * textScale, 4);
             
             ctx.font = `bold ${fontSize}px Arial`;
             ctx.textAlign = 'center';

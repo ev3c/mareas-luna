@@ -177,7 +177,7 @@
             <ul>
                 <li><strong>Tamaños Tierra-Luna:</strong> Proporcionales a la realidad. La Luna tiene 27.3% del radio de la Tierra (1,737 km vs 6,371 km).</li>
                 <li><strong>Mareas:</strong> En la Tierra real, la marea alta es ~1 metro sobre un radio de 6,371 km. Aquí está exagerada ~20x para visibilidad.</li>
-                <li><strong>Sol:</strong> No está a escala (el Sol real es 109 veces más grande que la Tierra).</li>
+                <li><strong>Sol:</strong> Reducido para mejor visualización (el Sol real es 109 veces más grande que la Tierra). Su órbita es elíptica real.</li>
             </ul>
             <p><strong>☀️ Mareas Vivas y Muertas:</strong></p>
             <ul>
@@ -185,6 +185,7 @@
                 <li><strong style="color: #4fc3f7;">Mareas MUERTAS (~5m):</strong> Ocurren cuando el Sol y la Luna están perpendiculares (cuarto creciente/menguante). Sus efectos se contrarrestan parcialmente.</li>
             </ul>
             <p><strong>🌙 Ciclo lunar:</strong> La Luna completa su órbita en ~29 días. Las mareas vivas ocurren en luna nueva (Sol-Luna alineados) y luna llena (Sol-Luna opuestos), aproximadamente cada 14-15 días.</p>
+            <p><strong>☀️ Órbita elíptica del Sol:</strong> El Sol se mueve en una órbita elíptica real alrededor de la Tierra (visualmente, aunque es la Tierra la que orbita). En enero (perihelio) la Tierra está más cerca del Sol, por lo que este se ve más grande y está más cerca. En julio (afelio) está más lejos y se ve más pequeño. <em>La variación de distancia real es del 3.4%, exagerada aquí al 18% para hacer la elipse más visible. El tamaño aparente varía inversamente proporcional a la distancia, como ocurre en la realidad.</em> ¡Observa cómo el Sol se acerca, crece de tamaño, y luego se aleja y se reduce durante el año!</p>
             <p><strong>🔊 Anuncios por voz:</strong> El sistema anuncia automáticamente usando síntesis de voz en español:</p>
             <ul>
                 <li><strong>"Cambiando a marea viva. Sol más Luna alineados"</strong> - Al pasar de marea alta a viva</li>
@@ -248,8 +249,8 @@
         const earthRadius = 100; // Radio Tierra = 6,371 km
         const moonDistance = 250;
         const moonRadius = 27.3; // Proporción real: 27.3% del radio terrestre (Luna = 1,737 km)
-        const sunDistance = 400;
-        const sunRadius = 35; // Nota: El Sol real es 109x más grande que la Tierra (no a escala para visibilidad)
+        const sunDistanceBase = 400; // Distancia base del Sol (semi-eje mayor)
+        const sunRadius = 22; // Sol más pequeño (no a escala real, pero más reducido)
         
         // Cargar textura realista de la Tierra
         function loadEarthTexture() {
@@ -401,40 +402,70 @@
             return {x: moonX, y: moonY};
         }
         
-        function drawSun(angle) {
-            const sunX = centerX + Math.cos(angle) * sunDistance;
-            const sunY = centerY + Math.sin(angle) * sunDistance;
+        function drawSun(angle, day, month) {
+            // Calcular el día del año para determinar la posición en la órbita elíptica
+            const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            let dayOfYear = day;
+            for (let i = 0; i < month - 1; i++) {
+                dayOfYear += daysInMonth[i];
+            }
             
-            // Resplandor del sol
+            // Órbita elíptica: la distancia varía según el día del año
+            // Perihelio (más cerca): ~3 enero (día del año ≈ 3)
+            // Afelio (más lejos): ~4 julio (día del año ≈ 185)
+            // Variación real: ±3.4% (147-152 millones de km), exagerada aquí para mejor visualización
+            const perihelionDay = 3;
+            const angleInYear = ((dayOfYear - perihelionDay) / 365.25) * 2 * Math.PI;
+            const distanceVariation = Math.cos(angleInYear); // Varía entre -1 y 1
+            
+            // Variación de distancia: ±18% para crear órbita elíptica más visible
+            const distanceScale = 1 - (distanceVariation * 0.18); // Más cerca cuando distanceVariation es positivo
+            const currentSunDistance = sunDistanceBase * distanceScale;
+            
+            // Variación de tamaño aparente: cuando está más cerca se ve más grande (inversamente proporcional a la distancia)
+            // Si la distancia es menor, el tamaño debe ser mayor
+            const sizeScale = 1 / distanceScale; // Relación inversa: más cerca = más grande
+            const currentSunRadius = sunRadius * sizeScale;
+            
+            // Calcular posición con la distancia variable (órbita elíptica)
+            const sunX = centerX + Math.cos(angle) * currentSunDistance;
+            const sunY = centerY + Math.sin(angle) * currentSunDistance;
+            
+            // Debug: ver el tamaño y distancia del sol (puedes comentar esta línea más adelante)
+            if (dayOfYear === 3 || dayOfYear === 185 || day === 1) {
+                console.log(`Día ${day}/${month} (día ${dayOfYear} del año) - Distancia: ${currentSunDistance.toFixed(1)}px (${distanceScale.toFixed(3)}x) - Radio: ${currentSunRadius.toFixed(1)}px (${sizeScale.toFixed(3)}x)`);
+            }
+            
+            // Resplandor del sol (proporcional al tamaño)
             ctx.shadowColor = 'rgba(255, 200, 0, 0.8)';
-            ctx.shadowBlur = 30;
+            ctx.shadowBlur = 30 * sizeScale;
             
             // Sol con gradiente amarillo-naranja
-            const gradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, sunRadius);
+            const gradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, currentSunRadius);
             gradient.addColorStop(0, '#ffff00');
             gradient.addColorStop(0.5, '#ffcc00');
             gradient.addColorStop(1, '#ff9900');
             
             ctx.fillStyle = gradient;
             ctx.beginPath();
-            ctx.arc(sunX, sunY, sunRadius, 0, Math.PI * 2);
+            ctx.arc(sunX, sunY, currentSunRadius, 0, Math.PI * 2);
             ctx.fill();
             
-            // Texto "-109" dentro del Sol
+            // Texto "×109" dentro del Sol (tamaño de fuente ajustado)
             ctx.shadowBlur = 0;
-            ctx.font = 'bold 16px Arial';
+            ctx.font = `bold ${Math.round(16 * sizeScale)}px Arial`;
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('×109', sunX, sunY);
             
-            // Rayos del sol
+            // Rayos del sol (ajustados al tamaño)
             ctx.strokeStyle = 'rgba(255, 200, 0, 0.6)';
             ctx.lineWidth = 2;
             for (let i = 0; i < 12; i++) {
                 const rayAngle = (i * Math.PI / 6) + angle;
-                const innerDist = sunRadius + 3;
-                const outerDist = sunRadius + 15;
+                const innerDist = currentSunRadius + 3;
+                const outerDist = currentSunRadius + 15;
                 ctx.beginPath();
                 ctx.moveTo(sunX + Math.cos(rayAngle) * innerDist, sunY + Math.sin(rayAngle) * innerDist);
                 ctx.lineTo(sunX + Math.cos(rayAngle) * outerDist, sunY + Math.sin(rayAngle) * outerDist);
@@ -663,7 +694,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             drawStars();
-            const sun = drawSun(sunAngle);
+            const sun = drawSun(sunAngle, day, month);
             drawSunGravityLines(sun);
             drawTidalBulge();
             drawEarth(earthRotation);
@@ -761,6 +792,11 @@
         // Función para anunciar el cambio de día
         function announceDay(day, month) {
             if ('speechSynthesis' in window) {
+                // No anunciar si el sistema de voz está ocupado
+                if (window.speechSynthesis.speaking) {
+                    return;
+                }
+                
                 const utterance = new SpeechSynthesisUtterance();
                 const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 
                                    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -780,7 +816,10 @@
                 
                 // Pequeño delay para no interferir con otros anuncios
                 setTimeout(() => {
-                    window.speechSynthesis.speak(utterance);
+                    // Verificar nuevamente antes de hablar por si ha cambiado
+                    if (!window.speechSynthesis.speaking) {
+                        window.speechSynthesis.speak(utterance);
+                    }
                 }, 500);
             }
         }

@@ -51,6 +51,8 @@
             border-radius: 10px;
             cursor: crosshair;
             box-shadow: 0 0 40px rgba(100, 150, 255, 0.3);
+            max-width: 100%;
+            height: auto;
         }
         
         .controls {
@@ -133,6 +135,132 @@
             color: #4fc3f7;
             text-shadow: 0 0 5px rgba(79, 195, 247, 0.5);
         }
+        
+        /* Media Queries para Responsive */
+        @media (max-width: 1280px) {
+            .canvas-container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 1.5em;
+                margin-bottom: 5px;
+            }
+            
+            .subtitle {
+                font-size: 0.95em;
+                margin-bottom: 20px;
+            }
+            
+            .canvas-container {
+                padding: 15px;
+                border-radius: 10px;
+            }
+            
+            button {
+                padding: 10px 20px;
+                font-size: 14px;
+                border-radius: 20px;
+            }
+            
+            .controls {
+                gap: 10px;
+            }
+            
+            .instruction {
+                font-size: 12px;
+                line-height: 1.4;
+            }
+            
+            .time-display {
+                font-size: 14px;
+            }
+            
+            .info-box {
+                padding: 15px;
+                font-size: 14px;
+            }
+            
+            .info-box h3 {
+                font-size: 1.1em;
+            }
+            
+            .info-box ul {
+                padding-left: 20px;
+            }
+            
+            .legend {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 10px;
+                font-size: 14px;
+            }
+            
+            .legend-color {
+                width: 25px;
+                height: 25px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.3em;
+            }
+            
+            .subtitle {
+                font-size: 0.85em;
+            }
+            
+            .canvas-container {
+                padding: 10px;
+            }
+            
+            button {
+                padding: 8px 15px;
+                font-size: 12px;
+            }
+            
+            .controls {
+                gap: 8px;
+            }
+            
+            .instruction {
+                font-size: 11px;
+            }
+            
+            .time-display {
+                font-size: 12px;
+            }
+            
+            .info-box {
+                font-size: 13px;
+                padding: 12px;
+            }
+            
+            .info-box h3 {
+                font-size: 1em;
+            }
+            
+            .legend {
+                grid-template-columns: 1fr;
+                gap: 8px;
+                font-size: 13px;
+            }
+            
+            .legend-color {
+                width: 22px;
+                height: 22px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -141,7 +269,7 @@
         <p class="subtitle">Visualización realista del efecto de marea gravitacional</p>
         
         <div class="canvas-container">
-            <canvas id="tideCanvas" width="1200" height="900"></canvas>
+            <canvas id="tideCanvas"></canvas>
             <div class="time-display" id="timeDisplay">01/Ene - Hora local: 12:00</div>
             <div class="controls">
                 <button id="rotateBtn" onclick="toggleRotation()">▶️ Rotar Tierra</button>
@@ -244,13 +372,57 @@
         let month = 1; // Mes (1 = enero)
         let speedMultiplier = 1; // Multiplicador de velocidad (x1, x2, x4, x8, x16, x20)
         
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const earthRadius = 100; // Radio Tierra = 6,371 km
-        const moonDistance = 250;
-        const moonRadius = 27.3; // Proporción real: 27.3% del radio terrestre (Luna = 1,737 km)
-        const sunDistanceBase = 400; // Distancia base del Sol (semi-eje mayor)
-        const sunRadius = 22; // Sol más pequeño (no a escala real, pero más reducido)
+        // Variables para responsive design
+        let scale = 1;
+        let centerX, centerY;
+        let earthRadius, moonDistance, moonRadius, sunDistanceBase, sunRadius;
+        
+        // Función para configurar el tamaño del canvas de forma responsive
+        function setupCanvas() {
+            const container = document.querySelector('.canvas-container');
+            const containerWidth = container.clientWidth - 60; // Restar padding
+            
+            // Determinar dimensiones según el ancho disponible
+            let canvasWidth, canvasHeight;
+            
+            if (window.innerWidth <= 480) {
+                // Móvil pequeño
+                canvasWidth = Math.min(containerWidth, 360);
+                canvasHeight = canvasWidth * 0.85; // Relación más cuadrada
+                scale = canvasWidth / 1200;
+            } else if (window.innerWidth <= 768) {
+                // Tablet/Móvil
+                canvasWidth = Math.min(containerWidth, 600);
+                canvasHeight = canvasWidth * 0.75;
+                scale = canvasWidth / 1200;
+            } else if (window.innerWidth <= 1280) {
+                // Pantalla mediana
+                canvasWidth = Math.min(containerWidth, 900);
+                canvasHeight = canvasWidth * 0.75;
+                scale = canvasWidth / 1200;
+            } else {
+                // Pantalla grande (desktop)
+                canvasWidth = Math.min(containerWidth, 1200);
+                canvasHeight = 900;
+                scale = 1;
+            }
+            
+            // Configurar dimensiones del canvas
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+            
+            // Calcular centro y dimensiones escaladas
+            centerX = canvas.width / 2;
+            centerY = canvas.height / 2;
+            earthRadius = 100 * scale;
+            moonDistance = 250 * scale;
+            moonRadius = 27.3 * scale;
+            sunDistanceBase = 400 * scale;
+            sunRadius = 22 * scale;
+        }
+        
+        // Llamar al setup inicial
+        setupCanvas();
         
         // Cargar textura realista de la Tierra
         function loadEarthTexture() {
@@ -278,10 +450,11 @@
         
         function drawStars() {
             ctx.fillStyle = 'white';
-            for (let i = 0; i < 300; i++) {
+            const numStars = Math.floor(300 * scale);
+            for (let i = 0; i < numStars; i++) {
                 const x = (i * 137.508) % canvas.width;
                 const y = (i * 197.386) % canvas.height;
-                const size = (i % 3) * 0.5 + 0.5;
+                const size = ((i % 3) * 0.5 + 0.5) * Math.max(scale, 0.5);
                 ctx.globalAlpha = 0.3 + (i % 5) * 0.1;
                 ctx.beginPath();
                 ctx.arc(x, y, size, 0, Math.PI * 2);
@@ -303,7 +476,7 @@
             
             // Sombra de la luna
             ctx.shadowColor = 'rgba(255, 215, 0, 0.5)';
-            ctx.shadowBlur = 15;
+            ctx.shadowBlur = 15 * scale;
             
             // Clip circular para la luna
             ctx.beginPath();
@@ -353,7 +526,7 @@
             // Flecha desde el punto hacia el centro de la Luna
             ctx.strokeStyle = '#ff3333';
             ctx.fillStyle = '#ff3333';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 2 * scale;
             ctx.beginPath();
             ctx.moveTo(0, -pointDistance);
             ctx.lineTo(0, 0);
@@ -362,37 +535,37 @@
             // Punta de flecha apuntando hacia el centro
             ctx.beginPath();
             ctx.moveTo(0, 0);
-            ctx.lineTo(-4, -6);
-            ctx.lineTo(4, -6);
+            ctx.lineTo(-4 * scale, -6 * scale);
+            ctx.lineTo(4 * scale, -6 * scale);
             ctx.closePath();
             ctx.fill();
             
             // Punto rojo brillante EN EL BORDE de la Luna
             ctx.fillStyle = '#ff0000';
             ctx.beginPath();
-            ctx.arc(0, -pointDistance, 5, 0, Math.PI * 2);
+            ctx.arc(0, -pointDistance, 5 * scale, 0, Math.PI * 2);
             ctx.fill();
             
             // Borde blanco para destacar más
             ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 2 * scale;
             ctx.beginPath();
-            ctx.arc(0, -pointDistance, 5, 0, Math.PI * 2);
+            ctx.arc(0, -pointDistance, 5 * scale, 0, Math.PI * 2);
             ctx.stroke();
             
             // Etiqueta
-            ctx.font = 'bold 9px Arial';
+            ctx.font = `bold ${Math.max(9 * scale, 7)}px Arial`;
             ctx.fillStyle = '#ffffff';
             ctx.textAlign = 'center';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-            ctx.shadowBlur = 3;
-            ctx.fillText('REF', 0, -pointDistance - 12);
+            ctx.shadowBlur = 3 * scale;
+            ctx.fillText('REF', 0, -pointDistance - 12 * scale);
             
             ctx.restore();
             
             // Borde de la luna
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = 1;
+            ctx.lineWidth = 1 * scale;
             ctx.beginPath();
             ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
             ctx.stroke();
@@ -453,7 +626,7 @@
             
             // Texto "×109" dentro del Sol (tamaño de fuente ajustado)
             ctx.shadowBlur = 0;
-            ctx.font = `bold ${Math.round(16 * sizeScale)}px Arial`;
+            ctx.font = `bold ${Math.max(Math.round(16 * sizeScale * scale), 10)}px Arial`;
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -461,11 +634,11 @@
             
             // Rayos del sol (ajustados al tamaño)
             ctx.strokeStyle = 'rgba(255, 200, 0, 0.6)';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 2 * scale;
             for (let i = 0; i < 12; i++) {
                 const rayAngle = (i * Math.PI / 6) + angle;
-                const innerDist = currentSunRadius + 3;
-                const outerDist = currentSunRadius + 15;
+                const innerDist = currentSunRadius + 3 * scale;
+                const outerDist = currentSunRadius + 15 * scale;
                 ctx.beginPath();
                 ctx.moveTo(sunX + Math.cos(rayAngle) * innerDist, sunY + Math.sin(rayAngle) * innerDist);
                 ctx.lineTo(sunX + Math.cos(rayAngle) * outerDist, sunY + Math.sin(rayAngle) * outerDist);
@@ -483,7 +656,7 @@
             // Proporción: 1m / 6,371,000m ≈ 0.000157
             // Aquí: 150px * 0.000157 ≈ 0.024px (invisible)
             // Usamos 6px para la Luna (exagerado ~20x para ver el efecto)
-            const moonBulgeScale = 6;
+            const moonBulgeScale = 6 * scale;
             // El Sol tiene ~46% del efecto de la Luna
             const sunBulgeScale = moonBulgeScale * 0.46;
             
@@ -527,7 +700,7 @@
                     ctx.strokeStyle = `rgba(33, 150, 243, 0.6)`;
                 }
                 
-                ctx.lineWidth = 2; // Más delgado para escala realista
+                ctx.lineWidth = 2 * scale; // Más delgado para escala realista
                 const r = earthRadius + tideEffect;
                 const x = centerX + Math.cos(rad) * r;
                 const y = centerY + Math.sin(rad) * r;
@@ -608,41 +781,44 @@
             
             // Borde de la tierra
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 2 * scale;
             ctx.beginPath();
             ctx.arc(centerX, centerY, earthRadius, 0, Math.PI * 2);
             ctx.stroke();
         }
         
         function drawLabels(isSpringTide) {
-            ctx.font = 'bold 16px Arial';
+            const fontSize = Math.max(16 * scale, 10);
+            const smallFontSize = Math.max(12 * scale, 8);
+            
+            ctx.font = `bold ${fontSize}px Arial`;
             ctx.textAlign = 'center';
             ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-            ctx.shadowBlur = 4;
+            ctx.shadowBlur = 4 * scale;
             
-            const labelDist = earthRadius + 70;
+            const labelDist = earthRadius + 70 * scale;
             
             // Marea ALTA/VIVA hacia la Luna (cambia dinámicamente)
             const x1 = centerX + Math.cos(moonAngle) * labelDist;
             const y1 = centerY + Math.sin(moonAngle) * labelDist;
             ctx.fillStyle = isSpringTide ? '#ff0000' : '#ff4444';
-            ctx.fillText(isSpringTide ? 'MAREA VIVA' : 'MAREA ALTA', x1, y1 - 8);
-            ctx.font = '12px Arial';
+            ctx.fillText(isSpringTide ? 'MAREA VIVA' : 'MAREA ALTA', x1, y1 - 8 * scale);
+            ctx.font = `${smallFontSize}px Arial`;
             ctx.fillStyle = isSpringTide ? '#ffcccc' : '#ffaaaa';
-            ctx.fillText(isSpringTide ? '(Sol + Luna alineados)' : '(atracción lunar)', x1, y1 + 8);
+            ctx.fillText(isSpringTide ? '(Sol + Luna alineados)' : '(atracción lunar)', x1, y1 + 8 * scale);
             
             // Marea ALTA/VIVA lado opuesto (cambia dinámicamente)
-            ctx.font = 'bold 16px Arial';
+            ctx.font = `bold ${fontSize}px Arial`;
             const x2 = centerX + Math.cos(moonAngle + Math.PI) * labelDist;
             const y2 = centerY + Math.sin(moonAngle + Math.PI) * labelDist;
             ctx.fillStyle = isSpringTide ? '#ff0000' : '#ff4444';
-            ctx.fillText(isSpringTide ? 'MAREA VIVA' : 'MAREA ALTA', x2, y2 - 8);
-            ctx.font = '12px Arial';
+            ctx.fillText(isSpringTide ? 'MAREA VIVA' : 'MAREA ALTA', x2, y2 - 8 * scale);
+            ctx.font = `${smallFontSize}px Arial`;
             ctx.fillStyle = isSpringTide ? '#ffcccc' : '#ffaaaa';
-            ctx.fillText(isSpringTide ? '(Sol + Luna alineados)' : '(efecto inercial)', x2, y2 + 8);
+            ctx.fillText(isSpringTide ? '(Sol + Luna alineados)' : '(efecto inercial)', x2, y2 + 8 * scale);
             
             // Mareas BAJAS
-            ctx.font = 'bold 16px Arial';
+            ctx.font = `bold ${fontSize}px Arial`;
             const x3 = centerX + Math.cos(moonAngle + Math.PI/2) * labelDist;
             const y3 = centerY + Math.sin(moonAngle + Math.PI/2) * labelDist;
             ctx.fillStyle = '#1976d2';
@@ -657,9 +833,9 @@
         }
         
         function drawGravityLines(moonPos) {
-            ctx.setLineDash([10, 5]);
+            ctx.setLineDash([10 * scale, 5 * scale]);
             ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 2 * scale;
             
             // Líneas hacia la tierra
             for (let i = 0; i < 8; i++) {
@@ -674,9 +850,9 @@
         }
         
         function drawSunGravityLines(sunPos) {
-            ctx.setLineDash([10, 5]);
+            ctx.setLineDash([10 * scale, 5 * scale]);
             ctx.strokeStyle = 'rgba(255, 200, 0, 0.3)';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 2 * scale;
             
             // Líneas desde el Sol hacia la Tierra
             for (let i = 0; i < 8; i++) {
@@ -1045,6 +1221,16 @@
             
             moonAngle = Math.atan2(y - centerY, x - centerX);
             draw();
+        });
+        
+        // Evento de resize para hacer el canvas responsive
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                setupCanvas();
+                draw();
+            }, 250);
         });
         
         // Inicializar

@@ -212,17 +212,13 @@
         }
         
         @media (max-width: 480px) {
-            /* Todos los textos al 2% del tamaño PC */
-            body {
-                font-size: 2%;
-            }
-            
+            /* Todos los textos al 20% del tamaño PC */
             h1 {
-                font-size: 0.04em; /* 2% de 2em */
+                font-size: 0.4em; /* 20% de 2em */
             }
             
             .subtitle {
-                font-size: 0.022em; /* 2% de 1.1em */
+                font-size: 0.22em; /* 20% de 1.1em */
             }
             
             .canvas-container {
@@ -230,57 +226,59 @@
             }
             
             button {
-                padding: 8px 15px;
-                font-size: 0.32px; /* 2% de 16px */
+                padding: 2px 4px; /* Ajustado proporcionalmente */
+                font-size: 3.2px; /* 20% de 16px */
             }
             
             .controls {
-                gap: 8px;
+                gap: 2px; /* Reducido proporcionalmente */
             }
             
             .instruction {
-                font-size: 0.28px; /* 2% de 14px */
+                font-size: 2.8px; /* 20% de 14px */
             }
             
             .time-display {
-                font-size: 0.36px; /* 2% de 18px */
+                font-size: 3.6px; /* 20% de 18px */
             }
             
             .info-box {
-                font-size: 0.26px; /* 2% del tamaño base */
-                padding: 12px;
+                font-size: 2.8px; /* 20% de 14px base */
+                padding: 2.4px; /* 20% de 12px */
             }
             
             .info-box h3 {
-                font-size: 0.02em; /* 2% del tamaño base */
+                font-size: 0.2em; /* 20% del tamaño base */
             }
             
             .info-box p {
-                font-size: 0.26px;
+                font-size: 2.8px;
             }
             
             .info-box ul {
-                font-size: 0.26px;
-                padding-left: 20px;
+                font-size: 2.8px;
+                padding-left: 4px; /* 20% de 20px */
             }
             
             .info-box li {
-                font-size: 0.26px;
+                font-size: 2.8px;
+                margin-bottom: 1px;
             }
             
             .legend {
                 grid-template-columns: 1fr;
-                gap: 8px;
-                font-size: 0.26px; /* 2% del tamaño base */
+                gap: 2px; /* 20% de 8px */
+                font-size: 2.8px; /* 20% de 14px */
             }
             
             .legend-item {
-                font-size: 0.26px;
+                font-size: 2.8px;
+                gap: 2px;
             }
             
             .legend-color {
-                width: 22px;
-                height: 22px;
+                width: 4.4px; /* 20% de 22px */
+                height: 4.4px;
             }
         }
     </style>
